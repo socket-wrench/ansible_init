@@ -11,7 +11,8 @@ then
   rpm -q dnf-plugins-core || sudo dnf install -y dnf-plugins-core || exit 1
   sudo dnf repolist -y |grep -E "^epel.*$" || sudo dnf install -y $REPO_ADDR 
   sudo dnf config-manager -y --dump epel|grep 'enabled = 1' || sudo dnf config-manager -y --enable epel
-  sudo dnf install -y ansible 
+  sudo dnf install -y python3 python3-pip
+  sudo pip3 install ansible
   ansible --version
   echo "Installation complete"
   exit 0
