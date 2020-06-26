@@ -15,7 +15,17 @@ function pline(){
   echo "==============================================================================="
 }
 
-# make sure correct os and version or exit
+# Check if ansible is already installed
+if [ "$(ansible --version)" ]
+then
+  pline
+  ansible --version
+  pline
+  echo "Ansible already installed. Nothing else to do.  Exitting..."
+  echo ""
+  exit 0
+fi
+
 if ! [[ "$RHRELEASE" =~ $RHEL_EXPECTED ]] 
 then
   pline
@@ -43,27 +53,21 @@ do
 done
 
 # Install prereqs
-if [ "echo $pkg_list|tr -d '[:blank:]'" ] 
+if [ "${pkg_list// }" ] 
 then
   pline
   echo "Installing prequisites: ${pkg_list}"
   sudo dnf --enablerepo ${APPSTREAM_REPO_NAME} install -y $pkg_list
+else
+  pline
+  echo "All prerequisites in place.  Moving on."
 fi
 
 # Set path for pip, trying for latest
 PIP=$(which pip3 || which pip2 || which pip)
 
-# Check if ansible is already installed
-if [ "$(ansible --version)" ]
-then
-  pline
-  ansible --version
-  pline
-  echo "Ansible already installed. Nothing else to do.  Exitting..."
-  echo ""
-  exit 0
 # Try to install via pip if not already
-elif [ -x ${PIP} ] && [ -z "$(sudo ${PIP} list --format=columns | grep "^ansible ")" ]
+if [ -x ${PIP} ] && [ -z "$(sudo ${PIP} list --format=columns | grep "^ansible ")" ]
 then
   pline
   echo "Attempting to install using pip: ${PIP}"
