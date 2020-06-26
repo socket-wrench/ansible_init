@@ -6,7 +6,7 @@ RHEL_EXPECTED='(^CentOS Linux release 8.*$)'
 APPSTREAM_REPO_NAME=AppStream
 EPEL_REPO_ADDR="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
 EPEL_REPO_NAME=epel
-PREREQ_PKGS='dnf-plugins-core python3 python3-pip git'
+PREREQ_PKGS='dnf-plugins-core python36 python3-pip git'
 
 
 # Define function to print line break
