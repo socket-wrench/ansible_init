@@ -8,27 +8,33 @@ EPEL_REPO_ADDR="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noar
 EPEL_REPO_NAME=epel
 PREREQ_PKGS='dnf-plugins-core python3 python3-pip git'
 
-PIP=$(which pip3 || which pip2 || which pip)
 
+# Define function to print line break
 function pline(){
+  echo ""
   echo "==============================================================================="
-
 }
 
 # make sure correct os and version or exit
 if ! [[ "$RHRELEASE" =~ $RHEL_EXPECTED ]] 
 then
-  echo ""
   pline
   echo "Wrong operating system or version."
   echo "Expected: ${RHEL_EXPECTED}"
   echo "Found: ${RHRELEASE}"
   echo "Exitting..."
+  echo ""
   exit 1
 fi
 
+# Check for to make sure dnf is installed
+DNF=$(which dnf) || \
+  ( pline && \
+    echo "No executable found for dnf.  Check your path." && \
+    exit 1
+  )
+
 # Check to see if prereqs are installed
-echo ""
 pline
 echo "Checking for prerequisites..."
 for p in ${PREREQ_PKGS}
@@ -37,43 +43,58 @@ do
 done
 
 # Install prereqs
-if [ "echo $pkg_list|tr -d '[:blank:]'" ]
+if [ "echo $pkg_list|tr -d '[:blank:]'" ] 
 then
-  echo ""
   pline
   echo "Installing prequisites: ${pkg_list}"
   sudo dnf --enablerepo ${APPSTREAM_REPO_NAME} install -y $pkg_list
 fi
 
+# Set path for pip, trying for latest
+PIP=$(which pip3 || which pip2 || which pip)
+
 # Check if ansible is already installed
 if [ "$(ansible --version)" ]
 then
-    ansible --version
-    echo ""
-    echo "Ansible already installed. Nothing else to do.  Exitting..."
-    exit 0
+  pline
+  ansible --version
+  pline
+  echo "Ansible already installed. Nothing else to do.  Exitting..."
+  echo ""
+  exit 0
 # Try to install via pip if not already
 elif [ -x ${PIP} ] && [ -z "$(sudo ${PIP} list --format=columns | grep "^ansible ")" ]
 then
-    #echo "Ansible already installed.  Exitting..." && exit 0
-    sudo ${PIP} install ansible
+  pline
+  echo "Attempting to install using pip: ${PIP}"
+  sudo ${PIP} install ansible
 # Try to install ansible via rpm if not already
 elif [ "$(rpm -q ansible)" ]
 then
-    sudo dnf repolist -y |grep -E "^epel.*$" || \
-      sudo dnf install -y $EPEL_REPO_ADDR 
-    sudo dnf config-manager -y --dump $EPEL_REPO_NAME|grep 'enabled = 1' || \
-      sudo dnf config-manager -y --enable $EPEL_REPO_NAME
-    sudo dnf install -y ansible
+  pline
+  echo "Attempting to install using dnf."
+  sudo dnf repolist -y |grep -E "^epel.*$" || \
+    sudo dnf install -y $EPEL_REPO_ADDR 
+  sudo dnf config-manager -y --dump $EPEL_REPO_NAME|grep 'enabled = 1' || \
+    sudo dnf config-manager -y --enable $EPEL_REPO_NAME
+  sudo dnf install -y ansible
+else
+  pline
+  echo "Could not find a valid way to install ansible using $PIP or $(which dnf)"
+  exit 1
 fi
 
 # Validate ansible responds or print error and exit
 pline
 echo "Verifying installation...."
 ansible --version || \
-    ( echo "Something didn't work right, review output and try again..." && \
-      exit 1 )
+  ( echo "Something didn't work right, review output and try again..." && \
+    echo "" && \
+    exit 1 
+  )
 
 # If you got this far, you should be good, all done, and exit
+pline
 echo "Installation complete"
+echo ""
 exit 0
